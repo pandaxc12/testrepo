@@ -4,228 +4,406 @@
 <head>
     <meta charset="UTF - 8">
     <meta name="viewport" content="width=device - width, initial - scale = 1.0">
-    <title>任务列表</title>
+    <title>任务管理小程序</title>
     <style>
+        body {
+            font - family: Arial, sans - serif;
+        }
+
+        section {
+            margin: 10px;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+
         table {
-            border - collapse: collapse;
             width: 100%;
+            border - collapse: collapse;
         }
 
         th,
         td {
             border: 1px solid #ccc;
-            padding: 8px;
-            text - align: left;
+            padding: 5px;
         }
 
         input[type="checkbox"] {
             margin - right: 5px;
         }
 
-        input[type="text"] {
-            border: 1px solid #ccc;
+        input[type="text"],
+        select {
             padding: 5px;
+        }
+
+        button {
+            padding: 5px 10px;
+        }
+
+        /* 保存按钮初始不可用 */
+        #save - task - props {
+            pointer - events: none;
+            opacity: 0.5;
         }
     </style>
 </head>
 
 <body>
-    <h1>任务列表</h1>
-    <table id="task - table">
-        <thead>
-            <tr>
-                <th>完成</th>
-                <th>任务名</th>
-                <th>产品</th>
-                <th>环境</th>
-                <th>位置</th>
-                <th>实体</th>
-            </tr>
-        </thead>
-        <tbody id="task - body"></tbody>
-    </table>
-    <button onclick="addTask()">添加任务</button>
-    <button onclick="saveTasks()">保存任务</button>
+    <section id="task - name - section">
+        <h2>任务名称</h2>
+        <div id="no - tasks" style="display:none;">
+            <button onclick="showCreateTaskForm()">创建任务</button>
+        </div>
+        <table id="task - name - table">
+            <thead>
+                <tr>
+                    <th>完成</th>
+                    <th>任务名称</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="task - name - tbody"></tbody>
+        </table>
+        <div id="create - task - form" style="display:none;">
+            <input type="text" id="new - task - name" placeholder="输入任务名称">
+            <button onclick="createTask()">创建</button>
+        </div>
+    </section>
+
+    <section id="task - props - section">
+        <h2>任务属性</h2>
+        <table id="task - props - table">
+            <thead>
+                <tr>
+                    <th>属性</th>
+                    <th>值</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>产品</td>
+                    <td>
+                        <input type="radio" name="product" value="pa"> pa
+                        <input type="radio" name="product" value="pb"> pb
+                    </td>
+                </tr>
+                <tr>
+                    <td>环境</td>
+                    <td>
+                        <input type="radio" name="env" value="prod"> prod
+                        <input type="radio" name="env" value="qa"> qa
+                    </td>
+                </tr>
+                <tr>
+                    <td>位置</td>
+                    <td>
+                        <input type="radio" name="location" value="sh"> sh
+                        <input type="radio" name="location" value="sz"> sz
+                    </td>
+                </tr>
+                <tr>
+                    <td>实体</td>
+                    <td>
+                        <input type="radio" name="entity" value="corpa"> corpa
+                        <input type="radio" name="entity" value="corpb"> corpb
+                    </td>
+                </tr>
+                <tr>
+                    <td>类型</td>
+                    <td>
+                        <input type="radio" name="type" value="standalone"> standalone
+                        <input type="radio" name="type" value="cluster"> cluster
+                    </td>
+                </tr>
+                <tr>
+                    <td>自定义描述</td>
+                    <td><input type="text" id="custom - description"></td>
+                </tr>
+            </tbody>
+        </table>
+        <button id="save - task - props">保存</button>
+    </section>
+
+    <section id="task - step - names - section">
+        <h2>任务步骤名</h2>
+        <table id="task - step - names - table">
+            <thead>
+                <tr>
+                    <th>完成</th>
+                    <th>步骤名</th>
+                </tr>
+            </thead>
+            <tbody id="task - step - names - tbody"></tbody>
+        </table>
+    </section>
+
+    <section id="task - step - details - section">
+        <h2>任务具体步骤</h2>
+        <div id="task - step - details"></div>
+    </section>
 
     <script>
+        let currentTask = null;
+        let initialProps = {};
+
         document.addEventListener('DOMContentLoaded', function () {
             loadTasks();
+            document.getElementById('new - task - name').addEventListener('keyup', function (e) {
+                if (e.key === 'Enter') {
+                    createTask();
+                }
+            });
+            const propsInputs = document.querySelectorAll('#task - props - section input, #task - props - section select');
+            propsInputs.forEach(input => {
+                input.addEventListener('change', function () {
+                    updateSaveButtonState();
+                });
+            });
+            document.getElementById('custom - description').addEventListener('input', function () {
+                updateSaveButtonState();
+            });
         });
 
         function loadTasks() {
             fetch('/get_tasks')
-            .then(response => response.json())
-            .then(data => {
-                    const taskBody = document.getElementById('task - body');
-                    taskBody.innerHTML = '';
+         .then(response => response.json())
+         .then(data => {
+                    const taskNameTbody = document.getElementById('task - name - tbody');
+                    taskNameTbody.innerHTML = '';
+                    if (data.length === 0) {
+                        document.getElementById('no - tasks').style.display = 'block';
+                    } else {
+                        document.getElementById('no - tasks').style.display = 'none';
+                    }
                     data.forEach(task => {
                         const row = document.createElement('tr');
                         const completedCell = document.createElement('td');
                         const checkbox = document.createElement('input');
                         checkbox.type = 'checkbox';
                         checkbox.checked = task.completed;
+                        checkbox.addEventListener('change', function () {
+                            task.completed = this.checked;
+                            saveTask(task);
+                        });
                         completedCell.appendChild(checkbox);
                         const nameCell = document.createElement('td');
+                        const nameSpan = document.createElement('span');
+                        nameSpan.textContent = task.name;
                         const nameInput = document.createElement('input');
                         nameInput.type = 'text';
                         nameInput.value = task.name;
+                        nameInput.style.display = 'none';
+                        nameCell.appendChild(nameSpan);
                         nameCell.appendChild(nameInput);
-                        const productCell = document.createElement('td');
-                        const productSelect = document.createElement('select');
-                        const optionsProduct = ['pa', 'pb'];
-                        optionsProduct.forEach(option => {
-                            const opt = document.createElement('option');
-                            opt.value = option;
-                            opt.text = option;
-                            if (option === task.product) {
-                                opt.selected = true;
-                            }
-                            productSelect.appendChild(opt);
+                        const actionCell = document.createElement('td');
+                        const editButton = document.createElement('button');
+                        editButton.textContent = '编辑';
+                        editButton.addEventListener('click', function () {
+                            nameSpan.style.display = 'none';
+                            nameInput.style.display = 'block';
+                            nameInput.focus();
                         });
-                        productCell.appendChild(productSelect);
-                        const envCell = document.createElement('td');
-                        const envSelect = document.createElement('select');
-                        const optionsEnv = ['prod', 'qa'];
-                        optionsEnv.forEach(option => {
-                            const opt = document.createElement('option');
-                            opt.value = option;
-                            opt.text = option;
-                            if (option === task.env) {
-                                opt.selected = true;
-                            }
-                            envSelect.appendChild(opt);
+                        const saveButton = document.createElement('button');
+                        saveButton.textContent = '保存';
+                        saveButton.style.display = 'none';
+                        saveButton.addEventListener('click', function () {
+                            task.name = nameInput.value;
+                            saveTask(task);
+                            nameSpan.style.display = 'block';
+                            nameInput.style.display = 'none';
                         });
-                        envCell.appendChild(envSelect);
-                        const locationCell = document.createElement('td');
-                        const locationSelect = document.createElement('select');
-                        const optionsLocation = ['sh','sz'];
-                        optionsLocation.forEach(option => {
-                            const opt = document.createElement('option');
-                            opt.value = option;
-                            opt.text = option;
-                            if (option === task.location) {
-                                opt.selected = true;
+                        const deleteButton = document.createElement('button');
+                        deleteButton.textContent = '删除';
+                        deleteButton.addEventListener('click', function () {
+                            if (confirm('确定删除此任务？')) {
+                                deleteTask(task.id);
+                                taskNameTbody.removeChild(row);
+                                if (taskNameTbody.childNodes.length === 0) {
+                                    document.getElementById('no - tasks').style.display = 'block';
+                                }
                             }
-                            locationSelect.appendChild(opt);
                         });
-                        locationCell.appendChild(locationSelect);
-                        const entityCell = document.createElement('td');
-                        const entitySelect = document.createElement('select');
-                        const optionsEntity = ['corpa', 'corpb'];
-                        optionsEntity.forEach(option => {
-                            const opt = document.createElement('option');
-                            opt.value = option;
-                            opt.text = option;
-                            if (option === task.entity) {
-                                opt.selected = true;
-                            }
-                            entitySelect.appendChild(opt);
-                        });
-                        entityCell.appendChild(entitySelect);
+                        actionCell.appendChild(editButton);
+                        actionCell.appendChild(saveButton);
+                        actionCell.appendChild(deleteButton);
                         row.appendChild(completedCell);
                         row.appendChild(nameCell);
-                        row.appendChild(productCell);
-                        row.appendChild(envCell);
-                        row.appendChild(locationCell);
-                        row.appendChild(entityCell);
-                        taskBody.appendChild(row);
+                        row.appendChild(actionCell);
+                        taskNameTbody.appendChild(row);
                     });
                 });
         }
 
-        function addTask() {
-            const taskBody = document.getElementById('task - body');
-            const row = document.createElement('tr');
-            const completedCell = document.createElement('td');
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            completedCell.appendChild(checkbox);
-            const nameCell = document.createElement('td');
-            const nameInput = document.createElement('input');
-            nameInput.type = 'text';
-            nameCell.appendChild(nameInput);
-            const productCell = document.createElement('td');
-            const productSelect = document.createElement('select');
-            const optionsProduct = ['pa', 'pb'];
-            optionsProduct.forEach(option => {
-                const opt = document.createElement('option');
-                opt.value = option;
-                opt.text = option;
-                productSelect.appendChild(opt);
-            });
-            productCell.appendChild(productSelect);
-            const envCell = document.createElement('td');
-            const envSelect = document.createElement('select');
-            const optionsEnv = ['prod', 'qa'];
-            optionsEnv.forEach(option => {
-                const opt = document.createElement('option');
-                opt.value = option;
-                opt.text = option;
-                envSelect.appendChild(opt);
-            });
-            envCell.appendChild(envSelect);
-            const locationCell = document.createElement('td');
-            const locationSelect = document.createElement('select');
-            const optionsLocation = ['sh','sz'];
-            optionsLocation.forEach(option => {
-                const opt = document.createElement('option');
-                opt.value = option;
-                opt.text = option;
-                locationSelect.appendChild(opt);
-            });
-            locationCell.appendChild(locationSelect);
-            const entityCell = document.createElement('td');
-            const entitySelect = document.createElement('select');
-            const optionsEntity = ['corpa', 'corpb'];
-            optionsEntity.forEach(option => {
-                const opt = document.createElement('option');
-                opt.value = option;
-                opt.text = option;
-                entitySelect.appendChild(opt);
-            });
-            entityCell.appendChild(entitySelect);
-            row.appendChild(completedCell);
-            row.appendChild(nameCell);
-            row.appendChild(productCell);
-            row.appendChild(envCell);
-            row.appendChild(locationCell);
-            row.appendChild(entityCell);
-            taskBody.appendChild(row);
+        function showCreateTaskForm() {
+            document.getElementById('create - task - form').style.display = 'block';
         }
 
-        function saveTasks() {
-            const taskBody = document.getElementById('task - body');
-            const tasks = [];
-            for (let i = 0; i < taskBody.children.length; i++) {
-                const row = taskBody.children[i];
-                const checkbox = row.children[0].children[0];
-                const nameInput = row.children[1].children[0];
-                const productSelect = row.children[2].children[0];
-                const envSelect = row.children[3].children[0];
-                const locationSelect = row.children[4].children[0];
-                const entitySelect = row.children[5].children[0];
-                tasks.push({
-                    "name": nameInput.value,
-                    "completed": checkbox.checked,
-                    "product": productSelect.value,
-                    "env": envSelect.value,
-                    "location": locationSelect.value,
-                    "entity": entitySelect.value
-                });
+        function createTask() {
+            const newTaskName = document.getElementById('new - task - name').value;
+            if (newTaskName) {
+                const newTask = {
+                    name: newTaskName,
+                    completed: false
+                };
+                fetch('/save_task', {
+                    method: 'POST',
+                    headers: {
+                        'Content - Type': 'application/json'
+                    },
+                    body: JSON.stringify(newTask)
+                })
+             .then(response => response.json())
+             .then(data => {
+                        loadTasks();
+                        document.getElementById('create - task - form').style.display = 'none';
+                        document.getElementById('new - task - name').value = '';
+                    });
             }
-            fetch('/save_tasks', {
+        }
+
+        function saveTask(task) {
+            const props = getTaskProps();
+            task.product = props.product;
+            task.env = props.env;
+            task.location = props.location;
+            task.entity = props.entity;
+            task.type = props.type;
+            task.custom_description = props.custom_description;
+            fetch('/save_task', {
                 method: 'POST',
                 headers: {
                     'Content - Type': 'application/json'
                 },
-                body: JSON.stringify(tasks)
+                body: JSON.stringify(task)
             })
-            .then(response => response.json())
-            .then(data => {
-                    alert(data.message);
+         .then(response => response.json())
+         .then(data => {
+                    console.log(data.message);
                 });
         }
-    </script>
-</body>
 
-</html>
+        function deleteTask(taskId) {
+            fetch('/delete_task', {
+                method: 'POST',
+                headers: {
+                    'Content - Type': 'application/json'
+                },
+                body: JSON.stringify({ id: taskId })
+            })
+         .then(response => response.json())
+         .then(data => {
+                    console.log(data.message);
+                });
+        }
+
+        function getTaskProps() {
+            const product = document.querySelector('input[name="product"]:checked').value;
+            const env = document.querySelector('input[name="env"]:checked').value;
+            const location = document.querySelector('input[name="location"]:checked').value;
+            const entity = document.querySelector('input[name="entity"]:checked').value;
+            const type = document.querySelector('input[name="type"]:checked').value;
+            const customDescription = document.getElementById('custom - description').value;
+            return {
+                product,
+                env,
+                location,
+                entity,
+                type,
+                custom_description: customDescription
+            };
+        }
+
+        function updateSaveButtonState() {
+            const currentProps = getTaskProps();
+            const isChanged = JSON.stringify(currentProps)!== JSON.stringify(initialProps);
+            const saveButton = document.getElementById('save - task - props');
+            if (isChanged) {
+                saveButton.style.pointerEvents = 'auto';
+                saveButton.style.opacity = 1;
+            } else {
+                saveButton.style.pointerEvents = 'none';
+                saveButton.style.opacity = 0.5;
+            }
+        }
+
+        document.getElementById('save - task - props').addEventListener('click', function () {
+            if (currentTask) {
+                const props = getTaskProps();
+                currentTask.product = props.product;
+                currentTask.env = props.env;
+                currentTask.location = props.location;
+                currentTask.entity = props.entity;
+                currentTask.type = props.type;
+                currentTask.custom_description = props.custom_description;
+                saveTask(currentTask);
+                initialProps = {...props };
+                updateSaveButtonState();
+            }
+        });
+
+        document.getElementById('task - name - tbody').addEventListener('click', function (e) {
+            const row = e.target.closest('tr');
+            if (row) {
+                const taskId = Array.from(row.parentNode.children).indexOf(row);
+                fetch('/get_tasks')
+             .then(response => response.json())
+             .then(data => {
+                        currentTask = data[taskId];
+                        const productRadio = document.querySelector(`input[name="product"][value="${currentTask.product}"]`);
+                        const envRadio = document.querySelector(`input[name="env"][value="${currentTask.env}"]`);
+                        const locationRadio = document.querySelector(`input[name="location"][value="${currentTask.location}"]`);
+                        const entityRadio = document.querySelector(`input[name="entity"][value="${currentTask.entity}"]`);
+                        const typeRadio = document.querySelector(`input[name="type"][value="${currentTask.type}"]`);
+                        if (productRadio) productRadio.checked = true;
+                        if (envRadio) envRadio.checked = true;
+                        if (locationRadio) locationRadio.checked = true;
+                        if (entityRadio) entityRadio.checked = true;
+                        if (typeRadio) typeRadio.checked = true;
+                        document.getElementById('custom - description').value = currentTask.custom_description;
+                        initialProps = {
+                            product: currentTask.product,
+                            env: currentTask.env,
+                            location: currentTask.location,
+                            entity: currentTask.entity,
+                            type: currentTask.type,
+                            custom_description: currentTask.custom_description
+                        };
+                        updateSaveButtonState();
+                        updateTaskSteps(currentTask.type);
+                    });
+            }
+        });
+
+        function updateTaskSteps(type) {
+            const stepNamesTbody = document.getElementById('task - step - names - tbody');
+            stepNamesTbody.innerHTML = '';
+            const stepDetailsDiv = document.getElementById('task - step - details');
+            stepDetailsDiv.innerHTML = '';
+            const stepTemplates = {
+                "standalone": {
+                    steps: ["步骤1", "步骤2"],
+                    details: "独立任务详细步骤：先做步骤1，再做步骤2"
+                },
+                "cluster": {
+                    steps: ["集群步骤1", "集群步骤2"],
+                    details: "集群任务详细步骤：先执行集群步骤1，然后执行集群步骤2"
+                }
+            };
+            const steps = stepTemplates[type].steps;
+            const details = stepTemplates[type].details;
+            steps.forEach(step => {
+                const row = document.createElement('tr');
+                const completedCell = document.createElement('td');
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                completedCell.appendChild(checkbox);
+                const nameCell = document.createElement('td');
+                nameCell.textContent = step;
+                row.appendChild(completedCell);
+                row.appendChild(nameCell);
+                stepNamesTbody.appendChild(row);
+            });
+            stepDetailsDiv.textContent = details;
+        }
+    </script>
+</

@@ -14,7 +14,9 @@ def create_table():
                   product TEXT,
                   env TEXT,
                   location TEXT,
-                  entity TEXT)''')
+                  entity TEXT,
+                  type TEXT,
+                  custom_description TEXT)''')
     conn.commit()
     conn.close()
 
@@ -25,28 +27,42 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/save_tasks', methods=['POST'])
-def save_tasks():
+@app.route('/save_task', methods=['POST'])
+def save_task():
     data = request.get_json()
     conn = sqlite3.connect('tasks.db')
     c = conn.cursor()
-    for task in data:
-        c.execute('INSERT INTO tasks (name, completed, product, env, location, entity) VALUES (?,?,?,?,?,?)',
-                  (task['name'], task['completed'], task['product'], task['env'], task['location'], task['entity']))
+    if 'id' in data:
+        c.execute('UPDATE tasks SET name =?, completed =?, product =?, env =?, location =?, entity =?, type =?, custom_description =? WHERE id =?',
+                  (data['name'], data['completed'], data['product'], data['env'], data['location'], data['entity'], data['type'], data['custom_description'], data['id']))
+    else:
+        c.execute('INSERT INTO tasks (name, completed, product, env, location, entity, type, custom_description) VALUES (?,?,?,?,?,?,?,?)',
+                  (data['name'], data['completed'], data['product'], data['env'], data['location'], data['entity'], data['type'], data['custom_description']))
     conn.commit()
     conn.close()
-    return jsonify({"message": "Tasks saved successfully"})
+    return jsonify({"message": "Task saved successfully"})
 
 
 @app.route('/get_tasks', methods=['GET'])
 def get_tasks():
     conn = sqlite3.connect('tasks.db')
     c = conn.cursor()
-    c.execute('SELECT id, name, completed, product, env, location, entity FROM tasks')
+    c.execute('SELECT id, name, completed, product, env, location, entity, type, custom_description FROM tasks')
     tasks = [{"id": row[0], "name": row[1], "completed": bool(row[2]), "product": row[3], "env": row[4],
-              "location": row[5], "entity": row[6]} for row in c.fetchall()]
+              "location": row[5], "entity": row[6], "type": row[7], "custom_description": row[8]} for row in c.fetchall()]
     conn.close()
     return jsonify(tasks)
+
+
+@app.route('/delete_task', methods=['POST'])
+def delete_task():
+    task_id = request.get_json()['id']
+    conn = sqlite3.connect('tasks.db')
+    c = conn.cursor()
+    c.execute('DELETE FROM tasks WHERE id =?', (task_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Task deleted successfully"})
 
 
 if __name__ == '__main__':
