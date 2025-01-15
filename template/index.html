@@ -6,20 +6,23 @@
     <meta name="viewport" content="width=device - width, initial - scale = 1.0">
     <title>任务列表</title>
     <style>
-        #task - list {
-            list - style - type: none;
-            padding: 0;
+        table {
+            border - collapse: collapse;
+            width: 100%;
         }
 
-        #task - list li {
-            margin: 5px 0;
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text - align: left;
         }
 
-        #task - list input[type="checkbox"] {
+        input[type="checkbox"] {
             margin - right: 5px;
         }
 
-        #task - list input[type="text"] {
+        input[type="text"] {
             border: 1px solid #ccc;
             padding: 5px;
         }
@@ -28,7 +31,19 @@
 
 <body>
     <h1>任务列表</h1>
-    <ul id="task - list"></ul>
+    <table id="task - table">
+        <thead>
+            <tr>
+                <th>完成</th>
+                <th>任务名</th>
+                <th>产品</th>
+                <th>环境</th>
+                <th>位置</th>
+                <th>实体</th>
+            </tr>
+        </thead>
+        <tbody id="task - body"></tbody>
+    </table>
     <button onclick="addTask()">添加任务</button>
     <button onclick="saveTasks()">保存任务</button>
 
@@ -39,47 +54,163 @@
 
         function loadTasks() {
             fetch('/get_tasks')
-             .then(response => response.json())
-             .then(data => {
-                    const taskList = document.getElementById('task - list');
-                    taskList.innerHTML = '';
+            .then(response => response.json())
+            .then(data => {
+                    const taskBody = document.getElementById('task - body');
+                    taskBody.innerHTML = '';
                     data.forEach(task => {
-                        const listItem = document.createElement('li');
+                        const row = document.createElement('tr');
+                        const completedCell = document.createElement('td');
                         const checkbox = document.createElement('input');
                         checkbox.type = 'checkbox';
                         checkbox.checked = task.completed;
-                        const taskInput = document.createElement('input');
-                        taskInput.type = 'text';
-                        taskInput.value = task.name;
-                        listItem.appendChild(checkbox);
-                        listItem.appendChild(taskInput);
-                        taskList.appendChild(listItem);
+                        completedCell.appendChild(checkbox);
+                        const nameCell = document.createElement('td');
+                        const nameInput = document.createElement('input');
+                        nameInput.type = 'text';
+                        nameInput.value = task.name;
+                        nameCell.appendChild(nameInput);
+                        const productCell = document.createElement('td');
+                        const productSelect = document.createElement('select');
+                        const optionsProduct = ['pa', 'pb'];
+                        optionsProduct.forEach(option => {
+                            const opt = document.createElement('option');
+                            opt.value = option;
+                            opt.text = option;
+                            if (option === task.product) {
+                                opt.selected = true;
+                            }
+                            productSelect.appendChild(opt);
+                        });
+                        productCell.appendChild(productSelect);
+                        const envCell = document.createElement('td');
+                        const envSelect = document.createElement('select');
+                        const optionsEnv = ['prod', 'qa'];
+                        optionsEnv.forEach(option => {
+                            const opt = document.createElement('option');
+                            opt.value = option;
+                            opt.text = option;
+                            if (option === task.env) {
+                                opt.selected = true;
+                            }
+                            envSelect.appendChild(opt);
+                        });
+                        envCell.appendChild(envSelect);
+                        const locationCell = document.createElement('td');
+                        const locationSelect = document.createElement('select');
+                        const optionsLocation = ['sh','sz'];
+                        optionsLocation.forEach(option => {
+                            const opt = document.createElement('option');
+                            opt.value = option;
+                            opt.text = option;
+                            if (option === task.location) {
+                                opt.selected = true;
+                            }
+                            locationSelect.appendChild(opt);
+                        });
+                        locationCell.appendChild(locationSelect);
+                        const entityCell = document.createElement('td');
+                        const entitySelect = document.createElement('select');
+                        const optionsEntity = ['corpa', 'corpb'];
+                        optionsEntity.forEach(option => {
+                            const opt = document.createElement('option');
+                            opt.value = option;
+                            opt.text = option;
+                            if (option === task.entity) {
+                                opt.selected = true;
+                            }
+                            entitySelect.appendChild(opt);
+                        });
+                        entityCell.appendChild(entitySelect);
+                        row.appendChild(completedCell);
+                        row.appendChild(nameCell);
+                        row.appendChild(productCell);
+                        row.appendChild(envCell);
+                        row.appendChild(locationCell);
+                        row.appendChild(entityCell);
+                        taskBody.appendChild(row);
                     });
                 });
         }
 
         function addTask() {
-            const taskList = document.getElementById('task - list');
-            const listItem = document.createElement('li');
+            const taskBody = document.getElementById('task - body');
+            const row = document.createElement('tr');
+            const completedCell = document.createElement('td');
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
-            const taskInput = document.createElement('input');
-            taskInput.type = 'text';
-            listItem.appendChild(checkbox);
-            listItem.appendChild(taskInput);
-            taskList.appendChild(listItem);
+            completedCell.appendChild(checkbox);
+            const nameCell = document.createElement('td');
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameCell.appendChild(nameInput);
+            const productCell = document.createElement('td');
+            const productSelect = document.createElement('select');
+            const optionsProduct = ['pa', 'pb'];
+            optionsProduct.forEach(option => {
+                const opt = document.createElement('option');
+                opt.value = option;
+                opt.text = option;
+                productSelect.appendChild(opt);
+            });
+            productCell.appendChild(productSelect);
+            const envCell = document.createElement('td');
+            const envSelect = document.createElement('select');
+            const optionsEnv = ['prod', 'qa'];
+            optionsEnv.forEach(option => {
+                const opt = document.createElement('option');
+                opt.value = option;
+                opt.text = option;
+                envSelect.appendChild(opt);
+            });
+            envCell.appendChild(envSelect);
+            const locationCell = document.createElement('td');
+            const locationSelect = document.createElement('select');
+            const optionsLocation = ['sh','sz'];
+            optionsLocation.forEach(option => {
+                const opt = document.createElement('option');
+                opt.value = option;
+                opt.text = option;
+                locationSelect.appendChild(opt);
+            });
+            locationCell.appendChild(locationSelect);
+            const entityCell = document.createElement('td');
+            const entitySelect = document.createElement('select');
+            const optionsEntity = ['corpa', 'corpb'];
+            optionsEntity.forEach(option => {
+                const opt = document.createElement('option');
+                opt.value = option;
+                opt.text = option;
+                entitySelect.appendChild(opt);
+            });
+            entityCell.appendChild(entitySelect);
+            row.appendChild(completedCell);
+            row.appendChild(nameCell);
+            row.appendChild(productCell);
+            row.appendChild(envCell);
+            row.appendChild(locationCell);
+            row.appendChild(entityCell);
+            taskBody.appendChild(row);
         }
 
         function saveTasks() {
-            const taskList = document.getElementById('task - list');
+            const taskBody = document.getElementById('task - body');
             const tasks = [];
-            for (let i = 0; i < taskList.children.length; i++) {
-                const listItem = taskList.children[i];
-                const checkbox = listItem.children[0];
-                const taskInput = listItem.children[1];
+            for (let i = 0; i < taskBody.children.length; i++) {
+                const row = taskBody.children[i];
+                const checkbox = row.children[0].children[0];
+                const nameInput = row.children[1].children[0];
+                const productSelect = row.children[2].children[0];
+                const envSelect = row.children[3].children[0];
+                const locationSelect = row.children[4].children[0];
+                const entitySelect = row.children[5].children[0];
                 tasks.push({
-                    name: taskInput.value,
-                    completed: checkbox.checked
+                    "name": nameInput.value,
+                    "completed": checkbox.checked,
+                    "product": productSelect.value,
+                    "env": envSelect.value,
+                    "location": locationSelect.value,
+                    "entity": entitySelect.value
                 });
             }
             fetch('/save_tasks', {
@@ -89,8 +220,8 @@
                 },
                 body: JSON.stringify(tasks)
             })
-             .then(response => response.json())
-             .then(data => {
+            .then(response => response.json())
+            .then(data => {
                     alert(data.message);
                 });
         }
