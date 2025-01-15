@@ -1,0 +1,32 @@
+from flask import Flask, render_template, request, jsonify
+
+app = Flask(__name__)
+
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+
+@app.route('/save_tasks', methods=['POST'])
+def save_tasks():
+    tasks = request.get_json()
+    with open('tasks.json', 'w') as f:
+        import json
+        json.dump(tasks, f)
+    return jsonify({"message": "Tasks saved successfully"})
+
+
+@app.route('/get_tasks', methods=['GET'])
+def get_tasks():
+    try:
+        with open('tasks.json', 'r') as f:
+            import json
+            tasks = json.load(f)
+    except FileNotFoundError:
+        tasks = []
+    return jsonify(tasks)
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
