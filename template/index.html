@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh - CN">
+
+<head>
+    <meta charset="UTF - 8">
+    <meta name="viewport" content="width=device - width, initial - scale = 1.0">
+    <title>任务列表</title>
+    <style>
+        #task - list {
+            list - style - type: none;
+            padding: 0;
+        }
+
+        #task - list li {
+            margin: 5px 0;
+        }
+
+        #task - list input[type="checkbox"] {
+            margin - right: 5px;
+        }
+
+        #task - list input[type="text"] {
+            border: 1px solid #ccc;
+            padding: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>任务列表</h1>
+    <ul id="task - list"></ul>
+    <button onclick="addTask()">添加任务</button>
+    <button onclick="saveTasks()">保存任务</button>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            loadTasks();
+        });
+
+        function loadTasks() {
+            fetch('/get_tasks')
+             .then(response => response.json())
+             .then(data => {
+                    const taskList = document.getElementById('task - list');
+                    taskList.innerHTML = '';
+                    data.forEach(task => {
+                        const listItem = document.createElement('li');
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.checked = task.completed;
+                        const taskInput = document.createElement('input');
+                        taskInput.type = 'text';
+                        taskInput.value = task.name;
+                        listItem.appendChild(checkbox);
+                        listItem.appendChild(taskInput);
+                        taskList.appendChild(listItem);
+                    });
+                });
+        }
+
+        function addTask() {
+            const taskList = document.getElementById('task - list');
+            const listItem = document.createElement('li');
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            const taskInput = document.createElement('input');
+            taskInput.type = 'text';
+            listItem.appendChild(checkbox);
+            listItem.appendChild(taskInput);
+            taskList.appendChild(listItem);
+        }
+
+        function saveTasks() {
+            const taskList = document.getElementById('task - list');
+            const tasks = [];
+            for (let i = 0; i < taskList.children.length; i++) {
+                const listItem = taskList.children[i];
+                const checkbox = listItem.children[0];
+                const taskInput = listItem.children[1];
+                tasks.push({
+                    name: taskInput.value,
+                    completed: checkbox.checked
+                });
+            }
+            fetch('/save_tasks', {
+                method: 'POST',
+                headers: {
+                    'Content - Type': 'application/json'
+                },
+                body: JSON.stringify(tasks)
+            })
+             .then(response => response.json())
+             .then(data => {
+                    alert(data.message);
+                });
+        }
+    </script>
+</body>
+
+</html>
