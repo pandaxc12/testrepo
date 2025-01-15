@@ -1,0 +1,92 @@
+{
+    "manifest_version": 3,
+    "name": "Jira Service Extension",
+    "version": "1.0",
+    "description": "An extension for Jira Service",
+    "icons": {
+        "16": "icon16.png",
+        "48": "icon48.png",
+        "128": "icon128.png"
+    },
+    "content_scripts": [
+        {
+            "matches": ["https://example.com/test"],
+            "js": ["content.js"]
+        }
+    ],
+    "action": {
+        "default_popup": "popup.html"
+    },
+    "permissions": [
+        "tabs",
+        "activeTab",
+        "scripting",
+        "storage"
+    ]
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const userContentBlock = document.querySelector('user - content - block');
+    if (userContentBlock) {
+        const content = userContentBlock.textContent;
+        chrome.runtime.sendMessage({ type: 'content', data: content });
+    }
+});
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF - 8">
+    <meta name="viewport" content="width=device-width, initial - scale = 1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Jira Service Info</title>
+</head>
+
+<body>
+    <div id="info - window">
+        <span id="close - button">X</span>
+        <p id="content - display"></p>
+    </div>
+    <script src="popup.js"></script>
+</body>
+
+</html>
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'content') {
+        const contentDisplay = document.getElementById('content - display');
+        contentDisplay.textContent = message.data;
+
+        // 打开新标签页
+        chrome.tabs.create({ url: 'https://url1.example.com' });
+
+        // 置顶小窗口
+        const infoWindow = document.getElementById('info - window');
+        infoWindow.style.position = 'fixed';
+        infoWindow.style.top = '10px';
+        infoWindow.style.right = '10px';
+        infoWindow.style.zIndex = '10000';
+
+        // 关闭按钮逻辑
+        const closeButton = document.getElementById('close - button');
+        closeButton.addEventListener('click', () => {
+            infoWindow.style.display = 'none';
+        });
+    }
+});
+
+
+#info - window {
+    background - color: white;
+    border: 1px solid #ccc;
+    padding: 10px;
+    box - shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+#close - button {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    cursor: pointer;
+}
