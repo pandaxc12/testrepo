@@ -1,30 +1,51 @@
+import sqlite3
 from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
 
 
+def create_table():
+    conn = sqlite3.connect('tasks.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS tasks
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  name TEXT NOT NULL,
+                  completed BOOLEAN NOT NULL,
+                  product TEXT,
+                  env TEXT,
+                  location TEXT,
+                  entity TEXT)''')
+    conn.commit()
+    conn.close()
+
+
 @app.route('/')
 def index():
+    create_table()
     return render_template('index.html')
 
 
 @app.route('/save_tasks', methods=['POST'])
 def save_tasks():
-    tasks = request.get_json()
-    with open('tasks.json', 'w') as f:
-        import json
-        json.dump(tasks, f)
+    data = request.get_json()
+    conn = sqlite3.connect('tasks.db')
+    c = conn.cursor()
+    for task in data:
+        c.execute('INSERT INTO tasks (name, completed, product, env, location, entity) VALUES (?,?,?,?,?,?)',
+                  (task['name'], task['completed'], task['product'], task['env'], task['location'], task['entity']))
+    conn.commit()
+    conn.close()
     return jsonify({"message": "Tasks saved successfully"})
 
 
 @app.route('/get_tasks', methods=['GET'])
 def get_tasks():
-    try:
-        with open('tasks.json', 'r') as f:
-            import json
-            tasks = json.load(f)
-    except FileNotFoundError:
-        tasks = []
+    conn = sqlite3.connect('tasks.db')
+    c = conn.cursor()
+    c.execute('SELECT id, name, completed, product, env, location, entity FROM tasks')
+    tasks = [{"id": row[0], "name": row[1], "completed": bool(row[2]), "product": row[3], "env": row[4],
+              "location": row[5], "entity": row[6]} for row in c.fetchall()]
+    conn.close()
     return jsonify(tasks)
 
 
